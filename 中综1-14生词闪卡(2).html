@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSK4-5级生词交互闪卡</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        body {
+            background-color: #f8f9fa;
+            padding: 30px;
+        }
+        .card-container {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 40px;
+            font-size: 28px;
+        }
+        /* 闪卡样式 */
+        .flashcard {
+            width: 500px;
+            height: 350px;
+            margin: 0 auto 30px;
+            perspective: 1200px;
+            cursor: pointer;
+        }
+        .flashcard-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.5s ease;
+            transform-style: preserve-3d;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-radius: 12px;
+        }
+        .flashcard.flipped .flashcard-inner {
+            transform: rotateY(180deg);
+        }
+        .flashcard-front, .flashcard-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 40px;
+        }
+        .flashcard-front {
+            background-color: #4361ee;
+            color: white;
+        }
+        .flashcard-back {
+            background-color: white;
+            color: #2d3748;
+            transform: rotateY(180deg);
+            text-align: left;
+        }
+        /* 正面文字样式 */
+        .word {
+            font-size: 42px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .pinyin {
+            font-size: 24px;
+            opacity: 0.9;
+        }
+        /* 背面文字样式 */
+        .back-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4361ee;
+            margin-bottom: 8px;
+        }
+        .back-content {
+            font-size: 16px;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+        /* 导航按钮 */
+        .nav-btns {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .nav-btn {
+            padding: 12px 24px;
+            background-color: #4361ee;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .nav-btn:disabled {
+            background-color: #cbd5e0;
+            cursor: not-allowed;
+        }
+        .nav-btn:hover:not(:disabled) {
+            background-color: #3a56d4;
+        }
+        /* 卡片索引 */
+        .card-index {
+            font-size: 18px;
+            color: #64748b;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card-container">
+        <h1>HSK4-5级生词交互闪卡</h1>
+        <div class="card-index" id="cardIndex">1 / 21</div>
+        
+        <!-- 闪卡主体 -->
+        <div class="flashcard" id="flashcard" onclick="flipCard()">
+            <div class="flashcard-inner" id="flashcardInner">
+                <!-- 闪卡正面 -->
+                <div class="flashcard-front">
+                    <div class="word" id="cardWord">畅销</div>
+                    <div class="pinyin" id="cardPinyin">chàngxiāo</div>
+                </div>
+                <!-- 闪卡背面 -->
+                <div class="flashcard-back" id="cardBack">
+                    <div class="back-title">词性</div>
+                    <div class="back-content" id="cardPos">动词</div>
+                    <div class="back-title">解释</div>
+                    <div class="back-content" id="cardMeaning">商品销量好，很受欢迎</div>
+                    <div class="back-title">常用短语</div>
+                    <div class="back-content" id="cardPhrases">畅销书籍、畅销产品</div>
+                    <div class="back-title">例句</div>
+                    <div class="back-content" id="cardSentence">这本财经类书籍最近非常畅销，连续三个月卖断货。</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 导航按钮 -->
+        <div class="nav-btns">
+            <button class="nav-btn" id="prevBtn" onclick="changeCard(-1)" disabled>上一张</button>
+            <button class="nav-btn" id="nextBtn" onclick="changeCard(1)">下一张</button>
+        </div>
+    </div>
+
+    <script>
+        // 1. 生词数据（对应表格中所有生词）
+        const wordData = [
+            {
+                word: "畅销",
+                pinyin: "chàngxiāo",
+                pos: "动词",
+                meaning: "商品销量好，很受欢迎",
+                phrases: "畅销书籍、畅销产品",
+                sentence: "这本财经类书籍最近非常畅销，连续三个月卖断货。"
+            },
+            {
+                word: "通俗易懂",
+                pinyin: "tōngsú yìdǒng",
+                pos: "形容词",
+                meaning: "内容简单明白，容易理解",
+                phrases: "通俗易懂的文章、通俗易懂的讲解",
+                sentence: "老师用通俗易懂的语言讲解理财知识，学生都能听懂。"
+            },
+            {
+                word: "出版社",
+                pinyin: "chūbǎnshè",
+                pos: "名词",
+                meaning: "出版书籍、杂志等的机构",
+                phrases: "知名出版社、大学出版社",
+                sentence: "这家出版社下个月要推出一本科幻小说的成人版。"
+            },
+            {
+                word: "排行榜",
+                pinyin: "páihángbǎng",
+                pos: "名词",
+                meaning: "按一定标准排列的名单，展示名次",
+                phrases: "销量排行榜、人气排行榜",
+                sentence: "这本书在文学类排行榜上一直保持前三名。"
+            },
+            {
+                word: "财经",
+                pinyin: "cáijīng",
+                pos: "名词",
+                meaning: "财政和经济的统称",
+                phrases: "财经新闻、财经杂志",
+                sentence: "他每天都会看财经报道，了解最新的市场动态。"
+            },
+            {
+                word: "科幻",
+                pinyin: "kēhuàn",
+                pos: "形容词",
+                meaning: "结合科学和幻想的（多指文学、影视）",
+                phrases: "科幻小说、科幻电影",
+                sentence: "孩子特别喜欢看科幻题材的动画片，觉得很神奇。"
+            },
+            {
+                word: "实话",
+                pinyin: "shíhuà",
+                pos: "名词",
+                meaning: "真实的话，不是谎言",
+                phrases: "说实话、讲实话",
+                sentence: "你别隐瞒了，快把实话告诉我吧。"
+            },
+            {
+                word: "只顾",
+                pinyin: "zhǐgù",
+                pos: "动词",
+                meaning: "只注意某一方面，忽略其他",
+                phrases: "只顾自己、只顾工作",
+                sentence: "他只顾赚钱，却很少花时间陪伴家人。"
+            },
+            {
+                word: "迎合",
+                pinyin: "yínghé",
+                pos: "动词",
+                meaning: "故意使自己的言行符合别人的心意",
+                phrases: "迎合口味、迎合需求",
+                sentence: "这家餐厅不会只顾迎合顾客口味，还坚持保证食材品质。"
+            },
+            {
+                word: "口味",
+                pinyin: "kǒuwèi",
+                pos: "名词",
+                meaning: "对食物的喜好；也指对事物的偏好",
+                phrases: "口味清淡、符合口味",
+                sentence: "这家甜品店的蛋糕口味很多，能满足不同人的需求。"
+            },
+            {
+                word: "名著",
+                pinyin: "míngzhù",
+                pos: "名词",
+                meaning: "有名的、有影响力的著作",
+                phrases: "世界名著、文学名著",
+                sentence: "老师建议我们多阅读名著，提升文学素养。"
+            },
+            {
+                word: "观念",
+                pinyin: "guānniàn",
+                pos: "名词",
+                meaning: "对事物的看法、想法",
+                phrases: "传统观念、新观念",
+                sentence: "随着时代发展，人们的理财观念也在不断变化。"
+            },
+            {
+                word: "理财",
+                pinyin: "lǐcái",
+                pos: "动词",
+                meaning: "管理钱财，使资金合理增值或使用",
+                phrases: "理财知识、理财方法",
+                sentence: "很多人会向理财高手学习如何管理自己的财富。"
+            },
+            {
+                word: "高手",
+                pinyin: "gāoshǒu",
+                pos: "名词",
+                meaning: "在某方面技能突出、水平很高的人",
+                phrases: "电脑高手、理财高手",
+                sentence: "他是公司里的技术高手，很多难题都能解决。"
+            },
+            {
+                word: "财富",
+                pinyin: "cáifù",
+                pos: "名词",
+                meaning: "具有价值的东西，多指金钱、财产等",
+                phrases: "创造财富、积累财富",
+                sentence: "知识和经验也是一种宝贵的财富，不能只看重金钱。"
+            },
+            {
+                word: "成人",
+                pinyin: "chéngrén",
+                pos: "名词/形容词",
+                meaning: "名词：成年人；形容词：适合成年人的",
+                phrases: "成人教育、成人书籍",
+                sentence: "这本童话书有成人版，内容比原版更有深度。"
+            },
+            {
+                word: "版",
+                pinyin: "bǎn",
+                pos: "名词",
+                meaning: "书籍、报刊等的版本；也指印刷的次数",
+                phrases: "新版、成人版、第一版",
+                sentence: "这本小说的修订版增加了很多新的内容。"
+            },
+            {
+                word: "报道",
+                pinyin: "bàodào",
+                pos: "动词/名词",
+                meaning: "动词：传播新闻；名词：新闻稿",
+                phrases: "新闻报道、报道事件",
+                sentence: "电视台及时报道了这次财经论坛的重要内容。"
+            },
+            {
+                word: "金钱",
+                pinyin: "jīnqián",
+                pos: "名词",
+                meaning: "货币，钱",
+                phrases: "金钱观、积累金钱",
+                sentence: "我们应该树立正确的金钱观，不要盲目追求财富。"
+            },
+            {
+                word: "童话",
+                pinyin: "tónghuà",
+                pos: "名词",
+                meaning: "适合儿童看的、充满幻想的故事",
+                phrases: "童话故事、童话书",
+                sentence: "妈妈每天晚上都会给孩子讲一个童话故事。"
+            },
+            {
+                word: "奇迹",
+                pinyin: "qíjì",
+                pos: "名词",
+                meaning: "很难做到的、让人惊讶的美好事情",
+                phrases: "创造奇迹、出现奇迹",
+                sentence: "他通过努力工作，创造了从普通员工到公司老板的奇迹。"
+            }
+        ];
+
+        // 2. 全局变量
+        let currentIndex = 0; // 当前卡片索引
+        const flashcard = document.getElementById("flashcard");
+        const cardWord = document.getElementById("cardWord");
+        const cardPinyin = document.getElementById("cardPinyin");
+        const cardPos = document.getElementById("cardPos");
+        const cardMeaning = document.getElementById("cardMeaning");
+        const cardPhrases = document.getElementById("cardPhrases");
+        const cardSentence = document.getElementById("cardSentence");
+        const cardIndex = document.getElementById("cardIndex");
+        const prevBtn = document.getElementById("prevBtn");
+        const nextBtn = document.getElementById("nextBtn");
+
+        // 3. 初始化卡片内容
+        function initCard() {
+            const currentData = wordData[currentIndex];
+            cardWord.textContent = currentData.word;
+            cardPinyin.textContent = currentData.pinyin;
+            cardPos.textContent = currentData.pos;
+            cardMeaning.textContent = currentData.meaning;
+            cardPhrases.textContent = currentData.phrases;
+            cardSentence.textContent = currentData.sentence;
+            cardIndex.textContent = `${currentIndex + 1} / ${wordData.length}`;
+            
+            // 更新按钮状态
+            prevBtn.disabled = currentIndex === 0;
+            nextBtn.disabled = currentIndex === wordData.length - 1;
+            
+            // 重置卡片为正面
+            flashcard.classList.remove("flipped");
+        }
+
+        // 4. 翻转卡片
+        function flipCard() {
+            flashcard.classList.toggle("flipped");
+        }
+
+        // 5. 切换卡片（prev: -1，next: 1）
+        function changeCard(direction) {
+            currentIndex += direction;
+            initCard();
+        }
+
+        // 页面加载时初始化第一张卡片
+        window.onload = initCard;
+    </script>
+</body>
+</html>
